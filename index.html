@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MercadoFresh — Tu Supermercado de Confianza</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#C8102E;--accent-dark:#9B0A22;--gold:#F5C518;--dark:#1A1A1A;--cream:#FDF8F2}
+*{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--dark);cursor:none}
+.cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s}
+.cursor-ring{width:36px;height:36px;border:1.5px solid var(--accent);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .06s,top .06s;opacity:.6}
+nav{transition:background .3s,box-shadow .3s}
+nav.scrolled{background:rgba(26,26,26,.97)!important;box-shadow:0 2px 30px rgba(0,0,0,.3)}
+.nav-link{position:relative}
+.nav-link::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:var(--gold);transition:width .3s}
+.nav-link:hover::after{width:100%}
+.hero-bg{background:linear-gradient(135deg,#1A1A1A 0%,#2D0A12 50%,#1A1A1A 100%)}
+.diagonal-cut{clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}
+.product-card{transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .3s}
+.product-card:hover{transform:translateY(-10px) scale(1.02);box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.badge-sale{animation:pulse-badge 2s infinite}
+@keyframes pulse-badge{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.section-reveal{opacity:0;transform:translateY(40px);transition:opacity .7s,transform .7s}
+.section-reveal.visible{opacity:1;transform:translateY(0)}
+.stagger-2{transition-delay:.2s}
+.map-frame{border-radius:16px;overflow:hidden;border:2px solid rgba(200,16,46,.2)}
+.form-input{transition:border-color .2s,box-shadow .2s;background:#fff;color:#1a1a1a}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,16,46,.12)}
+.btn-primary{background:var(--accent);transition:background .2s,transform .15s}
+.btn-primary:hover{background:var(--accent-dark);transform:scale(1.03)}
+.btn-primary:active{transform:scale(.98)}
+.flag-divider{background:linear-gradient(90deg,#74ACDF 0%,#74ACDF 33%,#fff 33%,#fff 66%,#74ACDF 66%,#74ACDF 100%);height:4px}
+.stat-num{font-family:'Playfair Display',serif}
+.scroll-indicator{animation:bounce 1.8s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+.cat-chip{transition:background .2s,color .2s,transform .2s}
+.cat-chip:hover,.cat-chip.active{background:var(--accent);color:#fff;transform:scale(1.05)}
+.promo-ticker{animation:ticker 30s linear infinite;white-space:nowrap}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,.65);backdrop-filter:blur(8px)}
+.overlay.open{display:flex}
+.product-img{width:100%;height:9rem;object-fit:cover;display:block}
+.product-img-placeholder{width:100%;height:9rem;display:flex;align-items:center;justify-content:center;font-size:3.5rem;background:linear-gradient(135deg,#FDF8F2,#f5ede0)}
+.img-upload-area{border:2px dashed #e5e7eb;border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.img-upload-area:hover{border-color:var(--accent);background:rgba(200,16,46,.03)}
+.img-upload-area.dragging{border-color:var(--accent);background:rgba(200,16,46,.06)}
+.admin-tab{border-bottom:2px solid transparent;color:#9ca3af;transition:color .2s,border-color .2s;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer}
+.admin-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+#toast{position:fixed;bottom:2rem;right:2rem;z-index:9990;transform:translateY(100px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.shake{animation:shake .4s ease}
+.logo-click-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--gold);opacity:0;pointer-events:none;transition:all .3s}
+.logo-click-ring.ping{opacity:1;width:24px;height:24px;opacity:0}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- TOAST -->
+<div id="toast" class="bg-gray-900 text-white px-5 py-3 rounded-xl text-sm font-medium shadow-2xl flex items-center gap-3">
+  <span id="toastIcon">✅</span><span id="toastMsg">Guardado</span>
+</div>
+
+<!-- ══════════ LOGIN MODAL ══════════ -->
+<div id="loginOverlay" class="overlay" style="z-index:2000">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 relative">
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-black mx-auto mb-4" style="background:linear-gradient(135deg,#C8102E,#9B0A22)">M</div>
+      <h2 class="font-black text-2xl mb-1" style="font-family:'Playfair Display',serif">Panel Admin</h2>
+      <p class="text-gray-400 text-sm">Ingresá tus credenciales de acceso</p>
+    </div>
+    <div id="loginFormWrap">
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Usuario</label>
+          <input id="loginUser" type="text" placeholder="admin" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Contraseña</label>
+          <div class="relative">
+            <input id="loginPass" type="password" placeholder="••••••••" class="form-input w-full px-4 py-3 rounded-xl border text-sm pr-12" style="border-color:#e5e7eb" onkeydown="if(event.key==='Enter')doLogin()">
+            <button onclick="togglePass()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 text-lg" tabindex="-1" style="cursor:pointer">👁</button>
+          </div>
+        </div>
+        <div id="loginErr" class="hidden text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">Usuario o contraseña incorrectos.</div>
+        <button onclick="doLogin()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold text-sm">Ingresar al panel →</button>
+        <button onclick="closeLogin()" class="w-full py-2 text-gray-400 text-sm hover:text-gray-600 transition-colors" style="cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN PANEL ══════════ -->
+<div id="adminPanel" class="overlay" style="z-index:1500">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
+    <div class="flex items-center justify-between px-8 py-5 flex-shrink-0" style="background:linear-gradient(90deg,#1a1a1a,#2d0a12)">
+      <div>
+        <h2 class="text-white font-bold text-xl">Panel de Administración</h2>
+        <p class="text-white/40 text-xs mt-0.5">MercadoFresh · Gestión completa del sitio</p>
+      </div>
+      <button onclick="closeAdmin()" class="text-white/50 hover:text-white text-2xl transition-colors" style="cursor:pointer">✕</button>
+    </div>
+    <div class="flex border-b px-6 flex-shrink-0 overflow-x-auto gap-1">
+      <button onclick="adminTab('products')" id="tab-products" class="admin-tab active py-4 px-4 text-sm font-medium whitespace-nowrap">🛒 Productos</button>
+      <button onclick="adminTab('offers')" id="tab-offers" class="admin-tab py-4 px-4 text-sm font-medium whitespace-nowrap">🏷️ Ofertas</button>
+      <button onclick="adminTab('content')" id="tab-content" class="admin-tab py-4 px-4 text-sm font-medium whitespace-nowrap">✏️ Contenido</button>
+      <button onclick="adminTab('map')" id="tab-map" class="admin-tab py-4 px-4 text-sm font-medium whitespace-nowrap">🗺️ Mapa & Locales</button>
+      <button onclick="adminTab('settings')" id="tab-settings" class="admin-tab py-4 px-4 text-sm font-medium whitespace-nowrap">🔐 Seguridad</button>
+    </div>
+    <div class="overflow-y-auto flex-1 px-8 py-6">
+
+      <!-- PRODUCTS -->
+      <div id="admin-products">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-semibold text-lg">Catálogo de productos</h3>
+          <button onclick="openAddProduct()" class="btn-primary px-5 py-2 rounded-full text-white text-sm font-medium" style="cursor:pointer">+ Agregar</button>
+        </div>
+        <div id="adminProductList" class="space-y-3"></div>
+      </div>
+
+      <!-- OFFERS -->
+      <div id="admin-offers" class="hidden">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-semibold text-lg">Ofertas especiales</h3>
+          <button onclick="openAddOffer()" class="btn-primary px-5 py-2 rounded-full text-white text-sm font-medium" style="cursor:pointer">+ Agregar</button>
+        </div>
+        <div id="adminOfferList" class="space-y-3"></div>
+      </div>
+
+      <!-- CONTENT -->
+      <div id="admin-content" class="hidden">
+        <h3 class="font-semibold text-lg mb-2">Editar textos del sitio</h3>
+        <p class="text-sm text-gray-400 mb-5">Modificá los textos que aparecen en el sitio. Los cambios se aplican al guardar.</p>
+        <div id="contentFieldList" class="space-y-4"></div>
+        <div class="mt-6">
+          <button onclick="saveAllContent()" class="btn-primary px-6 py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">💾 Guardar todos los cambios</button>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div id="admin-map" class="hidden">
+        <h3 class="font-semibold text-lg mb-2">Configurar mapa y sucursales</h3>
+        <div class="mb-5 p-4 rounded-xl text-sm flex gap-3 items-start" style="background:#FFF8F0;border:1px solid #f0e8d8">
+          <span>💡</span>
+          <span>Ingresá las coordenadas de tu local. Podés obtenerlas en <a href="https://maps.google.com" target="_blank" class="underline font-medium" style="color:var(--accent)">Google Maps</a> haciendo clic derecho → "¿Qué hay aquí?".</span>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Latitud</label>
+            <input id="mapLat" type="text" placeholder="-34.6037" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Longitud</label>
+            <input id="mapLng" type="text" placeholder="-58.3837" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Zoom (1–20)</label>
+            <input id="mapZoom" type="number" min="1" max="20" placeholder="15" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Búsqueda (nombre del lugar)</label>
+            <input id="mapQuery" type="text" placeholder="MercadoFresh Palermo Buenos Aires" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+        </div>
+        <h4 class="font-semibold text-base mb-3">Datos de sucursales</h4>
+        <div id="branchList" class="space-y-4 mb-4"></div>
+        <button onclick="addBranch()" class="px-4 py-2 rounded-xl border text-sm font-medium hover:bg-gray-50 transition-colors" style="border-color:#e5e7eb;cursor:pointer">+ Agregar sucursal</button>
+        <div class="mt-6">
+          <button onclick="saveMapSettings()" class="btn-primary px-6 py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">💾 Guardar y actualizar mapa</button>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="admin-settings" class="hidden">
+        <h3 class="font-semibold text-lg mb-2">Seguridad de acceso</h3>
+        <p class="text-sm text-gray-400 mb-5">Cambiá las credenciales de acceso al panel de administración.</p>
+        <div class="max-w-md space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Nuevo usuario</label>
+            <input id="newUser" type="text" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Nueva contraseña</label>
+            <input id="newPass" type="password" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Confirmar contraseña</label>
+            <input id="newPass2" type="password" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div id="settingsErr" class="hidden text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg"></div>
+          <button onclick="saveCredentials()" class="btn-primary px-6 py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">🔐 Actualizar credenciales</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PRODUCT EDIT MODAL ══════════ -->
+<div id="editModal" class="overlay" style="z-index:2500">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="p-8">
+      <h3 id="editModalTitle" class="font-bold text-xl mb-6">Producto</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Imagen del producto</label>
+          <div id="imgUploadArea" class="img-upload-area" onclick="document.getElementById('imgFileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <div id="imgUploadPlaceholder">
+              <div class="text-4xl mb-2">📷</div>
+              <p class="text-sm text-gray-400">Hacé clic o arrastrá una imagen aquí</p>
+              <p class="text-xs text-gray-300 mt-1">JPG, PNG, WebP · Máx 5MB</p>
+            </div>
+            <img id="imgPreview" src="" alt="" class="hidden rounded-xl mx-auto" style="max-height:160px;max-width:100%;object-fit:cover">
+          </div>
+          <input id="imgFileInput" type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+          <div class="mt-3 flex items-center gap-3">
+            <span class="text-xs text-gray-400 whitespace-nowrap">O usá emoji:</span>
+            <input id="editEmoji" type="text" class="form-input px-3 py-2 rounded-lg border text-sm w-24" style="border-color:#e5e7eb" placeholder="🍅">
+            <button onclick="clearImg()" class="text-xs text-gray-400 hover:text-red-500 transition-colors" style="cursor:pointer">Limpiar imagen</button>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Nombre *</label>
+          <input id="editName" type="text" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Precio ($) *</label>
+            <input id="editPrice" type="number" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Unidad</label>
+            <input id="editUnit" type="text" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb" placeholder="kg, litro, unidad...">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Categoría</label>
+            <select id="editCategory" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+              <option value="verduras">🥦 Verduras</option>
+              <option value="carnes">🥩 Carnes</option>
+              <option value="lacteos">🧀 Lácteos</option>
+              <option value="bebidas">🥤 Bebidas</option>
+              <option value="panaderia">🍞 Panadería</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Descuento (%)</label>
+            <input id="editDiscount" type="number" min="0" max="90" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb" placeholder="0">
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="saveEdit()" class="btn-primary flex-1 py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">Guardar</button>
+        <button onclick="closeEdit()" class="flex-1 py-3 rounded-xl font-medium text-sm border hover:bg-gray-50 transition-colors" style="border-color:#e5e7eb;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ OFFER EDIT MODAL ══════════ -->
+<div id="offerModal" class="overlay" style="z-index:2500">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <h3 id="offerModalTitle" class="font-bold text-xl mb-6">Oferta</h3>
+    <div class="space-y-4">
+      <div>
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Título *</label>
+        <input id="offerTitle" type="text" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Descripción</label>
+        <textarea id="offerDesc" rows="2" class="form-input w-full px-4 py-3 rounded-xl border text-sm resize-none" style="border-color:#e5e7eb"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Precio normal</label>
+          <input id="offerOriginal" type="number" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Precio oferta</label>
+          <input id="offerSale" type="number" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Emoji</label>
+          <input id="offerEmoji" type="text" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Válida hasta</label>
+          <input id="offerExpiry" type="date" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="saveOffer()" class="btn-primary flex-1 py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">Guardar</button>
+      <button onclick="closeOfferModal()" class="flex-1 py-3 rounded-xl font-medium text-sm border hover:bg-gray-50 transition-colors" style="border-color:#e5e7eb;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FRONT END
+══════════════════════════════════════ -->
+
+<!-- Promo ticker -->
+<div class="bg-yellow-400 text-gray-900 py-2 overflow-hidden relative">
+  <div class="flex promo-ticker text-sm font-semibold">
+    <span class="px-8">🛒 ENVÍO GRATIS en compras mayores a $15.000</span>
+    <span class="px-8">🔥 OFERTA DEL DÍA: 3x2 en lácteos</span>
+    <span class="px-8">⭐ Más de 5.000 productos disponibles</span>
+    <span class="px-8">📦 Retiro en local sin cargo</span>
+    <span class="px-8">🛒 ENVÍO GRATIS en compras mayores a $15.000</span>
+    <span class="px-8">🔥 OFERTA DEL DÍA: 3x2 en lácteos</span>
+    <span class="px-8">⭐ Más de 5.000 productos disponibles</span>
+    <span class="px-8">📦 Retiro en local sin cargo</span>
+  </div>
+</div>
+
+<!-- NAV — logo hides the secret: 5 clicks in 3s -->
+<nav id="navbar" class="fixed top-8 left-0 right-0 z-50" style="background:transparent">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+    <a href="#hero" class="flex items-center gap-3 relative select-none" id="logoBtn">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold relative overflow-hidden" style="background:var(--accent)">
+        M
+        <div id="logoRipple" style="position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.3);transform:scale(0);opacity:0;transition:all .3s"></div>
+      </div>
+      <span class="text-white font-bold text-xl tracking-tight">Mercado<span style="color:var(--gold)">Fresh</span></span>
+    </a>
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#productos" class="nav-link text-white/80 hover:text-white text-sm font-medium">Productos</a>
+      <a href="#ofertas" class="nav-link text-white/80 hover:text-white text-sm font-medium">Ofertas</a>
+      <a href="#nosotros" class="nav-link text-white/80 hover:text-white text-sm font-medium">Nosotros</a>
+      <a href="#contacto" class="nav-link text-white/80 hover:text-white text-sm font-medium">Contacto</a>
+    </div>
+    <button id="mobileMenuBtn" class="md:hidden text-white text-2xl" onclick="toggleMobileMenu()">☰</button>
+  </div>
+  <div id="mobileMenu" class="md:hidden hidden px-6 pb-4" style="background:rgba(26,26,26,.97)">
+    <a href="#productos" class="block py-3 text-white/80 border-b border-white/10" onclick="toggleMobileMenu()">Productos</a>
+    <a href="#ofertas" class="block py-3 text-white/80 border-b border-white/10" onclick="toggleMobileMenu()">Ofertas</a>
+    <a href="#nosotros" class="block py-3 text-white/80 border-b border-white/10" onclick="toggleMobileMenu()">Nosotros</a>
+    <a href="#contacto" class="block py-3 text-white/80" onclick="toggleMobileMenu()">Contacto</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="hero-bg diagonal-cut min-h-screen flex items-center relative overflow-hidden">
+  <div class="absolute top-1/4 right-10 w-96 h-96 rounded-full opacity-5" style="background:var(--accent);filter:blur(60px)"></div>
+  <div class="absolute bottom-1/4 left-10 w-64 h-64 rounded-full opacity-10" style="background:var(--gold);filter:blur(50px)"></div>
+  <div class="max-w-7xl mx-auto px-6 pt-24 pb-32 grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <p class="text-yellow-400 font-semibold mb-4 text-xs tracking-widest" id="c-heroTag" data-key="heroTag">BUENOS AIRES · DESDE 1998</p>
+      <h1 class="text-5xl md:text-7xl font-black text-white leading-tight mb-6" style="font-family:'Playfair Display',serif">
+        <span id="c-heroLine1" data-key="heroLine1">Tu super</span><br>
+        <span style="color:var(--gold)" id="c-heroLine2" data-key="heroLine2">de barrio,</span><br>
+        <span id="c-heroLine3" data-key="heroLine3">con todo.</span>
+      </h1>
+      <p class="text-white/60 text-lg mb-10 leading-relaxed max-w-md" id="c-heroDesc" data-key="heroDesc">Productos frescos, precios accesibles y la calidez de siempre. Encontrá todo lo que necesitás para tu hogar en un solo lugar.</p>
+      <div class="flex flex-wrap gap-4">
+        <a href="#productos" class="btn-primary px-8 py-4 rounded-full text-white font-semibold text-sm shadow-lg">Ver Productos →</a>
+        <a href="#ofertas" class="px-8 py-4 rounded-full font-semibold text-sm" style="border:1.5px solid rgba(255,255,255,.3);color:#fff" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'">Ofertas del día</a>
+      </div>
+    </div>
+    <div class="hidden md:flex justify-center items-center">
+      <div class="text-center">
+        <div class="text-9xl mb-4">🛒</div>
+        <div class="flex gap-6 justify-center text-6xl">
+          <span class="animate-bounce" style="animation-delay:.1s">🥩</span>
+          <span class="animate-bounce" style="animation-delay:.3s">🥦</span>
+          <span class="animate-bounce" style="animation-delay:.5s">🧀</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+    <span class="text-white/30 text-xs tracking-widest">SCROLL</span>
+    <div class="scroll-indicator text-white/40 text-2xl">↓</div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="bg-white shadow-sm py-8">
+  <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+    <div><div class="stat-num text-4xl font-bold" style="color:var(--accent)" id="c-stat1" data-key="stat1">5K+</div><div class="text-sm text-gray-500 mt-1" id="c-stat1l" data-key="stat1l">Productos</div></div>
+    <div><div class="stat-num text-4xl font-bold" style="color:var(--accent)" id="c-stat2" data-key="stat2">25+</div><div class="text-sm text-gray-500 mt-1" id="c-stat2l" data-key="stat2l">Años de experiencia</div></div>
+    <div><div class="stat-num text-4xl font-bold" style="color:var(--accent)" id="c-stat3" data-key="stat3">3</div><div class="text-sm text-gray-500 mt-1" id="c-stat3l" data-key="stat3l">Sucursales</div></div>
+    <div><div class="stat-num text-4xl font-bold" style="color:var(--accent)" id="c-stat4" data-key="stat4">98%</div><div class="text-sm text-gray-500 mt-1" id="c-stat4l" data-key="stat4l">Clientes satisfechos</div></div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<section id="productos" class="py-24 px-6 max-w-7xl mx-auto">
+  <div class="section-reveal text-center mb-12">
+    <p class="text-xs font-bold tracking-widest mb-2" style="color:var(--accent)">CATÁLOGO</p>
+    <h2 class="font-black text-4xl md:text-5xl mb-4" style="font-family:'Playfair Display',serif" id="c-prodTitle" data-key="prodTitle">Nuestros Productos</h2>
+    <p class="text-gray-500 max-w-lg mx-auto" id="c-prodDesc" data-key="prodDesc">Selección cuidada de productos frescos y de calidad para toda la familia.</p>
+  </div>
+  <div class="section-reveal flex flex-wrap gap-3 justify-center mb-12">
+    <button class="cat-chip active px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('all',this)">Todos</button>
+    <button class="cat-chip px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('verduras',this)">🥦 Verduras</button>
+    <button class="cat-chip px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('carnes',this)">🥩 Carnes</button>
+    <button class="cat-chip px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('lacteos',this)">🧀 Lácteos</button>
+    <button class="cat-chip px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('bebidas',this)">🥤 Bebidas</button>
+    <button class="cat-chip px-5 py-2 rounded-full text-sm font-medium border" style="border-color:#e5e7eb" onclick="filterCategory('panaderia',this)">🍞 Panadería</button>
+  </div>
+  <div id="productGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+</section>
+
+<!-- OFFERS -->
+<section id="ofertas" class="py-24" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d0a12 100%)">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="section-reveal text-center mb-14">
+      <p class="text-xs font-bold tracking-widest mb-2 text-yellow-400">ESTA SEMANA</p>
+      <h2 class="text-4xl md:text-5xl font-black text-white mb-4" style="font-family:'Playfair Display',serif" id="c-offTitle" data-key="offTitle">Ofertas Especiales</h2>
+      <p class="text-white/50 max-w-lg mx-auto" id="c-offDesc" data-key="offDesc">No te pierdas estas promociones por tiempo limitado.</p>
+    </div>
+    <div id="offersGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+</section>
+
+<!-- NOSOTROS -->
+<section id="nosotros" class="py-24 px-6 max-w-7xl mx-auto">
+  <div class="grid md:grid-cols-2 gap-16 items-center">
+    <div class="section-reveal">
+      <p class="text-xs font-bold tracking-widest mb-3" style="color:var(--accent)">NUESTRA HISTORIA</p>
+      <h2 class="font-black text-4xl md:text-5xl mb-6 leading-tight" style="font-family:'Playfair Display',serif" id="c-aboutTitle" data-key="aboutTitle">Más de 25 años sirviendo al barrio</h2>
+      <p class="text-gray-500 leading-relaxed mb-5" id="c-aboutP1" data-key="aboutP1">Desde 1998, MercadoFresh nació con un sueño simple: llevar productos de calidad a precios justos a cada hogar de Buenos Aires. Hoy somos 3 sucursales y más de 50 empleados.</p>
+      <p class="text-gray-500 leading-relaxed mb-8" id="c-aboutP2" data-key="aboutP2">Trabajamos directamente con productores locales para garantizar frescura, trazabilidad y el sabor auténtico de la Argentina.</p>
+    </div>
+    <div class="section-reveal stagger-2 grid grid-cols-2 gap-4">
+      <div class="rounded-3xl text-6xl flex items-center justify-center h-48" style="background:linear-gradient(135deg,#C8102E,#9B0A22)">🏪</div>
+      <div class="rounded-3xl text-6xl flex items-center justify-center h-48 mt-8" style="background:linear-gradient(135deg,#F5C518,#d4a800)">🌽</div>
+      <div class="rounded-3xl text-6xl flex items-center justify-center h-48" style="background:linear-gradient(135deg,#74ACDF,#4d8cc7)">🥛</div>
+      <div class="rounded-3xl text-6xl flex items-center justify-center h-48 mt-8" style="background:#1A1A1A">🛒</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto" class="py-24" style="background:#F4F0E8">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="section-reveal text-center mb-14">
+      <p class="text-xs font-bold tracking-widest mb-2" style="color:var(--accent)">VISITANOS</p>
+      <h2 class="font-black text-4xl md:text-5xl mb-4" style="font-family:'Playfair Display',serif" id="c-mapTitle" data-key="mapTitle">¿Dónde estamos?</h2>
+      <p class="text-gray-500" id="c-mapDesc" data-key="mapDesc">Encontranos en el corazón del barrio. Siempre abiertos para vos.</p>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-10">
+      <div class="section-reveal map-frame shadow-xl" style="height:420px">
+        <iframe id="mapFrame" src="" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+      <div class="section-reveal stagger-2 space-y-6">
+        <div id="branchCards" class="space-y-4"></div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 class="font-semibold text-lg mb-4" id="c-contactFormTitle" data-key="contactFormTitle">Envianos un mensaje</h3>
+          <div class="space-y-3">
+            <input type="text" placeholder="Tu nombre" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+            <input type="email" placeholder="Tu email" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">
+            <textarea placeholder="Tu mensaje..." rows="3" class="form-input w-full px-4 py-3 rounded-xl border text-sm resize-none" style="border-color:#e5e7eb"></textarea>
+            <button class="btn-primary w-full py-3 rounded-xl text-white font-semibold text-sm" style="cursor:pointer">Enviar mensaje</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-4 text-sm text-gray-500">
+          <a id="c-phone" data-key="phone" href="#" class="flex items-center gap-2 hover:text-gray-800 transition-colors">📞 +54 11 4567-8900</a>
+          <a id="c-email" data-key="email" href="#" class="flex items-center gap-2 hover:text-gray-800 transition-colors">✉️ info@mercadofresh.com.ar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="text-white py-14 px-6" style="background:#1A1A1A">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid md:grid-cols-3 gap-10 mb-10">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background:var(--accent)">M</div>
+          <span class="font-bold text-xl">Mercado<span style="color:var(--gold)">Fresh</span></span>
+        </div>
+        <p class="text-white/40 text-sm leading-relaxed" id="c-footerDesc" data-key="footerDesc">Tu supermercado de confianza desde 1998. Productos frescos, precios accesibles.</p>
+      </div>
+      <div>
+        <div class="font-semibold mb-4 text-white/60 text-xs tracking-widest">LINKS</div>
+        <div class="space-y-2">
+          <a href="#productos" class="block text-white/50 hover:text-white text-sm transition-colors">Productos</a>
+          <a href="#ofertas" class="block text-white/50 hover:text-white text-sm transition-colors">Ofertas</a>
+          <a href="#nosotros" class="block text-white/50 hover:text-white text-sm transition-colors">Nosotros</a>
+          <a href="#contacto" class="block text-white/50 hover:text-white text-sm transition-colors">Contacto</a>
+        </div>
+      </div>
+      <div>
+        <div class="font-semibold mb-4 text-white/60 text-xs tracking-widest">SEGUINOS</div>
+        <div class="flex gap-4 text-2xl">
+          <a href="#" class="hover:scale-110 transition-transform inline-block">📘</a>
+          <a href="#" class="hover:scale-110 transition-transform inline-block">📸</a>
+          <a href="#" class="hover:scale-110 transition-transform inline-block">🐦</a>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="text-white/30 text-xs" id="c-copyright" data-key="copyright">© 2024 MercadoFresh. Todos los derechos reservados.</p>
+      <div class="flag-divider w-24 rounded-full"></div>
+      <p class="text-white/30 text-xs">Hecho con ❤️ en Buenos Aires, Argentina</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ═══ CREDENTIALS ═══
+let ADMIN_USER = 'admin';
+let ADMIN_PASS = 'admin';
+
+// ═══ MAP STATE ═══
+let mapSettings = { lat:'-34.6037', lng:'-58.3837', zoom:'15', query:'MercadoFresh Buenos Aires' };
+let branches = [
+  { id:1, name:'Sucursal Palermo', address:'Av. Santa Fe 3241, Buenos Aires', hours:'Lun–Sáb 8:00–21:00 · Dom 9:00–18:00' },
+  { id:2, name:'Sucursal Belgrano', address:'Cabildo 1850, Buenos Aires', hours:'Lun–Dom 7:30–22:00' }
+];
+
+// ═══ PRODUCTS ═══
+let products = [
+  {id:1,name:'Tomates Frescos',price:1200,category:'verduras',emoji:'🍅',img:'',discount:0,unit:'kg'},
+  {id:2,name:'Asado de Tira',price:8500,category:'carnes',emoji:'🥩',img:'',discount:15,unit:'kg'},
+  {id:3,name:'Leche Entera',price:980,category:'lacteos',emoji:'🥛',img:'',discount:0,unit:'litro'},
+  {id:4,name:'Queso Cremoso',price:2400,category:'lacteos',emoji:'🧀',img:'',discount:10,unit:'kg'},
+  {id:5,name:'Manzanas Rojas',price:900,category:'verduras',emoji:'🍎',img:'',discount:0,unit:'kg'},
+  {id:6,name:'Agua Mineral',price:450,category:'bebidas',emoji:'💧',img:'',discount:0,unit:'1.5L'},
+  {id:7,name:'Pan Lactal',price:750,category:'panaderia',emoji:'🍞',img:'',discount:0,unit:'unidad'},
+  {id:8,name:'Cerveza Artesanal',price:1800,category:'bebidas',emoji:'🍺',img:'',discount:20,unit:'unidad'},
+  {id:9,name:'Pollo Entero',price:4200,category:'carnes',emoji:'🍗',img:'',discount:5,unit:'kg'},
+  {id:10,name:'Medialunas',price:1200,category:'panaderia',emoji:'🥐',img:'',discount:0,unit:'docena'},
+  {id:11,name:'Espinaca',price:680,category:'verduras',emoji:'🥬',img:'',discount:0,unit:'atado'},
+  {id:12,name:'Yogur Natural',price:850,category:'lacteos',emoji:'🍶',img:'',discount:0,unit:'pot.'}
+];
+
+// ═══ OFFERS ═══
+let offers = [
+  {id:1,title:'3x2 en Lácteos',desc:'Llevá 3 productos lácteos y pagá solo 2. No acumulable con otras promos.',originalPrice:2940,salePrice:1960,emoji:'🧀',expiry:'2024-12-31'},
+  {id:2,title:'Asado 15% OFF',desc:'Este fin de semana, asado de tira y vacío con descuento especial.',originalPrice:8500,salePrice:7225,emoji:'🔥',expiry:'2024-12-29'},
+  {id:3,title:'Pack Bebidas',desc:'Caja de 12 cervezas a precio mayorista. Ideal para el asado del domingo.',originalPrice:21600,salePrice:16800,emoji:'🍺',expiry:'2024-12-30'}
+];
+
+// ═══ CONTENT DEFINITIONS ═══
+const contentDefs = [
+  {key:'heroTag',label:'Hero · Etiqueta superior',elId:'c-heroTag'},
+  {key:'heroLine1',label:'Hero · Título línea 1',elId:'c-heroLine1'},
+  {key:'heroLine2',label:'Hero · Título línea 2 (dorado)',elId:'c-heroLine2'},
+  {key:'heroLine3',label:'Hero · Título línea 3',elId:'c-heroLine3'},
+  {key:'heroDesc',label:'Hero · Descripción',elId:'c-heroDesc'},
+  {key:'stat1',label:'Estadística 1 · Número',elId:'c-stat1'},
+  {key:'stat1l',label:'Estadística 1 · Etiqueta',elId:'c-stat1l'},
+  {key:'stat2',label:'Estadística 2 · Número',elId:'c-stat2'},
+  {key:'stat2l',label:'Estadística 2 · Etiqueta',elId:'c-stat2l'},
+  {key:'stat3',label:'Estadística 3 · Número',elId:'c-stat3'},
+  {key:'stat3l',label:'Estadística 3 · Etiqueta',elId:'c-stat3l'},
+  {key:'stat4',label:'Estadística 4 · Número',elId:'c-stat4'},
+  {key:'stat4l',label:'Estadística 4 · Etiqueta',elId:'c-stat4l'},
+  {key:'prodTitle',label:'Productos · Título sección',elId:'c-prodTitle'},
+  {key:'prodDesc',label:'Productos · Descripción',elId:'c-prodDesc'},
+  {key:'offTitle',label:'Ofertas · Título sección',elId:'c-offTitle'},
+  {key:'offDesc',label:'Ofertas · Descripción',elId:'c-offDesc'},
+  {key:'aboutTitle',label:'Nosotros · Título',elId:'c-aboutTitle'},
+  {key:'aboutP1',label:'Nosotros · Párrafo 1',elId:'c-aboutP1'},
+  {key:'aboutP2',label:'Nosotros · Párrafo 2',elId:'c-aboutP2'},
+  {key:'mapTitle',label:'Contacto · Título sección',elId:'c-mapTitle'},
+  {key:'mapDesc',label:'Contacto · Descripción',elId:'c-mapDesc'},
+  {key:'contactFormTitle',label:'Contacto · Título formulario',elId:'c-contactFormTitle'},
+  {key:'phone',label:'Contacto · Teléfono (texto)',elId:'c-phone'},
+  {key:'email',label:'Contacto · Email (texto)',elId:'c-email'},
+  {key:'footerDesc',label:'Footer · Descripción',elId:'c-footerDesc'},
+  {key:'copyright',label:'Footer · Copyright',elId:'c-copyright'}
+];
+
+// ═══ CURSOR ═══
+const cursor = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursorRing');
+let rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+  cursor.style.left=e.clientX+'px'; cursor.style.top=e.clientY+'px';
+  rx+=(e.clientX-rx)*0.15; ry+=(e.clientY-ry)*0.15;
+  cursorRing.style.left=rx+'px'; cursorRing.style.top=ry+'px';
+});
+function animRing(){rx+=(parseFloat(cursor.style.left||0)-rx)*0.12;ry+=(parseFloat(cursor.style.top||0)-ry)*0.12;cursorRing.style.left=rx+'px';cursorRing.style.top=ry+'px';requestAnimationFrame(animRing);}
+animRing();
+document.addEventListener('mouseover',e=>{
+  if(e.target.closest('a,button,.product-card,.img-upload-area')){cursor.style.width='20px';cursor.style.height='20px';}
+});
+document.addEventListener('mouseout',e=>{
+  if(e.target.closest('a,button,.product-card,.img-upload-area')){cursor.style.width='12px';cursor.style.height='12px';}
+});
+
+// ═══ NAV ═══
+window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>60));
+function toggleMobileMenu(){document.getElementById('mobileMenu').classList.toggle('hidden');}
+
+// ═══ REVEAL ═══
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.1})
+  .observe(...[document.querySelectorAll('.section-reveal')].flatMap(x=>[...x]));
+document.querySelectorAll('.section-reveal').forEach(el=>{
+  new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.1}).observe(el);
+});
+
+// ═══ SECRET LOGO TRIGGER ═══
+// 5 rapid clicks on the logo → open login
+let logoClickCount=0, logoClickTimer=null;
+document.getElementById('logoBtn').addEventListener('click', e=>{
+  // Let normal anchor work for 1-4 clicks
+  logoClickCount++;
+  if(logoClickCount===1){
+    logoClickTimer=setTimeout(()=>{logoClickCount=0;},2500);
+  }
+  // Ripple feedback
+  const ripple=document.getElementById('logoRipple');
+  ripple.style.transform='scale(0)';ripple.style.opacity='.4';
+  setTimeout(()=>{ripple.style.transform='scale(2)';ripple.style.opacity='0';},10);
+  if(logoClickCount>=5){
+    e.preventDefault();
+    clearTimeout(logoClickTimer);
+    logoClickCount=0;
+    openLogin();
+  }
+});
+
+// ═══ TOAST ═══
+function showToast(msg,icon='✅'){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  document.getElementById('toastIcon').textContent=icon;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ═══ LOGIN ═══
+function openLogin(){
+  document.getElementById('loginOverlay').classList.add('open');
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginErr').classList.add('hidden');
+  setTimeout(()=>document.getElementById('loginUser').focus(),150);
+}
+function closeLogin(){document.getElementById('loginOverlay').classList.remove('open');}
+function togglePass(){const p=document.getElementById('loginPass');p.type=p.type==='password'?'text':'password';}
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  if(u===ADMIN_USER&&p===ADMIN_PASS){
+    closeLogin();
+    openAdmin();
+  } else {
+    document.getElementById('loginErr').classList.remove('hidden');
+    document.getElementById('loginFormWrap').classList.add('shake');
+    setTimeout(()=>document.getElementById('loginFormWrap').classList.remove('shake'),420);
+    document.getElementById('loginPass').value='';
+  }
+}
+
+// ═══ ADMIN ═══
+function openAdmin(){
+  document.getElementById('adminPanel').classList.add('open');
+  adminTab('products');
+  renderAdminProducts();
+  renderAdminOffers();
+  renderContentFields();
+  loadMapAdmin();
+  renderBranchAdmin();
+}
+function closeAdmin(){document.getElementById('adminPanel').classList.remove('open');}
+function adminTab(tab){
+  ['products','offers','content','map','settings'].forEach(t=>{
+    document.getElementById('admin-'+t).classList.toggle('hidden',t!==tab);
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  });
+}
+
+// ═══ FORMAT ═══
+function fmt(p){return '$'+Math.round(p).toLocaleString('es-AR');}
+
+// ═══ RENDER PRODUCTS (FRONT) ═══
+let currentFilter='all';
+function renderProducts(filter='all'){
+  const list=filter==='all'?products:products.filter(p=>p.category===filter);
+  document.getElementById('productGrid').innerHTML=list.map(p=>{
+    const disc=p.discount>0?Math.round(p.price*(1-p.discount/100)):null;
+    const imgHtml=p.img
+      ?`<img src="${p.img}" alt="${p.name}" class="product-img">`
+      :`<div class="product-img-placeholder"><span>${p.emoji||'📦'}</span></div>`;
+    return `<div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border" style="border-color:#f0e8d8">
+      <div class="overflow-hidden relative">
+        ${imgHtml}
+        ${p.discount>0?`<span class="badge-sale absolute top-3 left-3 px-2 py-0.5 rounded-full text-xs font-bold text-white" style="background:var(--accent)">-${p.discount}%</span>`:''}
+      </div>
+      <div class="p-4">
+        <h3 class="font-semibold text-sm mb-1">${p.name}</h3>
+        <p class="text-xs text-gray-400 mb-2">por ${p.unit}</p>
+        <div class="flex items-center gap-2">
+          ${disc
+            ?`<span class="line-through text-gray-300 text-sm">${fmt(p.price)}</span><span class="font-bold text-base" style="color:var(--accent)">${fmt(disc)}</span>`
+            :`<span class="font-bold text-base">${fmt(p.price)}</span>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function filterCategory(cat,btn){
+  currentFilter=cat;
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts(cat);
+}
+
+// ═══ RENDER OFFERS (FRONT) ═══
+function renderOffers(){
+  document.getElementById('offersGrid').innerHTML=offers.map(o=>{
+    const disc=Math.round((1-o.salePrice/o.originalPrice)*100);
+    return `<div class="product-card rounded-2xl p-6 relative" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)">
+      <div class="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full" style="background:var(--gold);color:#1a1a1a">-${disc}%</div>
+      <div class="text-5xl mb-4">${o.emoji}</div>
+      <h3 class="text-white font-bold text-lg mb-2">${o.title}</h3>
+      <p class="text-white/50 text-sm mb-4 leading-relaxed">${o.desc}</p>
+      <div class="flex items-baseline gap-3">
+        <span class="line-through text-white/30 text-sm">${fmt(o.originalPrice)}</span>
+        <span class="text-2xl font-bold" style="color:var(--gold)">${fmt(o.salePrice)}</span>
+      </div>
+      <p class="text-white/30 text-xs mt-2">Válido hasta ${o.expiry}</p>
+    </div>`;
+  }).join('');
+}
+
+// ═══ MAP ═══
+function buildMapSrc(){
+  const {lat,lng,zoom,query}=mapSettings;
+  const q=query.trim()||`${lat},${lng}`;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&t=&z=${zoom}&ie=UTF8&iwloc=&output=embed`;
+}
+function applyMap(){document.getElementById('mapFrame').src=buildMapSrc();}
+function loadMapAdmin(){
+  document.getElementById('mapLat').value=mapSettings.lat;
+  document.getElementById('mapLng').value=mapSettings.lng;
+  document.getElementById('mapZoom').value=mapSettings.zoom;
+  document.getElementById('mapQuery').value=mapSettings.query;
+}
+function saveMapSettings(){
+  mapSettings.lat=document.getElementById('mapLat').value.trim()||mapSettings.lat;
+  mapSettings.lng=document.getElementById('mapLng').value.trim()||mapSettings.lng;
+  mapSettings.zoom=document.getElementById('mapZoom').value||mapSettings.zoom;
+  mapSettings.query=document.getElementById('mapQuery').value.trim();
+  // save branch edits
+  document.querySelectorAll('#branchList [data-bid]').forEach(row=>{
+    const id=parseInt(row.dataset.bid);
+    const b=branches.find(x=>x.id===id);
+    if(b){
+      b.name=row.querySelector('[data-field=name]').value;
+      b.address=row.querySelector('[data-field=address]').value;
+      b.hours=row.querySelector('[data-field=hours]').value;
+    }
+  });
+  applyMap();
+  renderBranchCards();
+  showToast('Mapa y sucursales actualizados');
+}
+
+// ═══ BRANCHES ═══
+function renderBranchAdmin(){
+  document.getElementById('branchList').innerHTML=branches.map(b=>`
+    <div class="p-4 rounded-xl border space-y-2" style="border-color:#f0e8d8" data-bid="${b.id}">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-medium text-sm text-gray-600">Sucursal</span>
+        <button onclick="deleteBranch(${b.id})" class="text-xs text-red-400 hover:text-red-600 transition-colors" style="cursor:pointer">✕ Eliminar</button>
+      </div>
+      <input type="text" value="${b.name}" data-field="name" placeholder="Nombre" class="form-input w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e5e7eb">
+      <input type="text" value="${b.address}" data-field="address" placeholder="Dirección" class="form-input w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e5e7eb">
+      <input type="text" value="${b.hours}" data-field="hours" placeholder="Horarios" class="form-input w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e5e7eb">
+    </div>`).join('');
+}
+function addBranch(){
+  branches.push({id:Date.now(),name:'Nueva sucursal',address:'Dirección',hours:'Horarios'});
+  renderBranchAdmin();
+}
+function deleteBranch(id){
+  branches=branches.filter(x=>x.id!==id);
+  renderBranchAdmin();
+}
+function renderBranchCards(){
+  document.getElementById('branchCards').innerHTML=branches.map(b=>`
+    <div class="bg-white rounded-2xl p-5 flex gap-4 items-start shadow-sm">
+      <div class="text-2xl">📍</div>
+      <div>
+        <div class="font-semibold">${b.name}</div>
+        <div class="text-sm text-gray-500">${b.address}</div>
+        <div class="text-sm text-gray-400 mt-1">${b.hours}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══ CONTENT EDITOR ═══
+function renderContentFields(){
+  document.getElementById('contentFieldList').innerHTML=contentDefs.map(def=>{
+    const el=document.getElementById(def.elId);
+    const val=el?el.textContent.trim():'';
+    const multi=val.length>70;
+    return `<div>
+      <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">${def.label}</label>
+      ${multi
+        ?`<textarea data-ckey="${def.key}" rows="3" class="form-input w-full px-4 py-3 rounded-xl border text-sm resize-none" style="border-color:#e5e7eb">${val}</textarea>`
+        :`<input type="text" data-ckey="${def.key}" value="${val.replace(/"/g,'&quot;')}" class="form-input w-full px-4 py-3 rounded-xl border text-sm" style="border-color:#e5e7eb">`}
+    </div>`;
+  }).join('');
+}
+function saveAllContent(){
+  document.querySelectorAll('#contentFieldList [data-ckey]').forEach(inp=>{
+    const def=contentDefs.find(d=>d.key===inp.dataset.ckey);
+    if(!def) return;
+    const el=document.getElementById(def.elId);
+    if(el) el.textContent=inp.value;
+  });
+  showToast('Contenido del sitio actualizado');
+}
+
+// ═══ CREDENTIALS ═══
+function saveCredentials(){
+  const u=document.getElementById('newUser').value.trim();
+  const p=document.getElementById('newPass').value;
+  const p2=document.getElementById('newPass2').value;
+  const err=document.getElementById('settingsErr');
+  if(!u||!p){err.textContent='Completá usuario y contraseña.';err.classList.remove('hidden');return;}
+  if(p!==p2){err.textContent='Las contraseñas no coinciden.';err.classList.remove('hidden');return;}
+  ADMIN_USER=u;ADMIN_PASS=p;
+  err.classList.add('hidden');
+  ['newUser','newPass','newPass2'].forEach(id=>document.getElementById(id).value='');
+  showToast('Credenciales actualizadas');
+}
+
+// ═══ IMAGE UPLOAD ═══
+let pendingImgData='';
+function handleDragOver(e){e.preventDefault();document.getElementById('imgUploadArea').classList.add('dragging');}
+function handleDragLeave(){document.getElementById('imgUploadArea').classList.remove('dragging');}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('imgUploadArea').classList.remove('dragging');
+  const f=e.dataTransfer.files[0];
+  if(f) processImg(f);
+}
+function handleFileSelect(e){const f=e.target.files[0];if(f)processImg(f);}
+function processImg(file){
+  if(file.size>5*1024*1024){showToast('Imagen muy grande. Máx 5MB','⚠️');return;}
+  if(!file.type.startsWith('image/')){showToast('Solo se aceptan imágenes','⚠️');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    pendingImgData=ev.target.result;
+    const prev=document.getElementById('imgPreview');
+    prev.src=pendingImgData;
+    prev.classList.remove('hidden');
+    document.getElementById('imgUploadPlaceholder').classList.add('hidden');
+    document.getElementById('editEmoji').value='';
+  };
+  reader.readAsDataURL(file);
+}
+function clearImg(){
+  pendingImgData='';
+  document.getElementById('imgFileInput').value='';
+  document.getElementById('imgPreview').src='';
+  document.getElementById('imgPreview').classList.add('hidden');
+  document.getElementById('imgUploadPlaceholder').classList.remove('hidden');
+}
+function resetImgUpload(img){
+  clearImg();
+  if(img){
+    pendingImgData=img;
+    const prev=document.getElementById('imgPreview');
+    prev.src=img;prev.classList.remove('hidden');
+    document.getElementById('imgUploadPlaceholder').classList.add('hidden');
+  }
+}
+
+// ═══ ADMIN PRODUCT LIST ═══
+function renderAdminProducts(){
+  document.getElementById('adminProductList').innerHTML=products.map(p=>`
+    <div class="flex items-center gap-4 p-4 rounded-xl border hover:bg-gray-50 transition-colors" style="border-color:#f0e8d8">
+      <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center" style="background:#f5ede0">
+        ${p.img?`<img src="${p.img}" class="w-full h-full object-cover" alt="">`:`<span style="font-size:1.6rem">${p.emoji||'📦'}</span>`}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-sm truncate">${p.name}</div>
+        <div class="text-xs text-gray-400">${p.category} · ${p.unit}</div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <div class="font-semibold text-sm">${fmt(p.price)}</div>
+        ${p.discount>0?`<div class="text-xs font-medium" style="color:var(--accent)">-${p.discount}%</div>`:'<div class="text-xs text-gray-300">Sin desc.</div>'}
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <button onclick="openEditProduct(${p.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-blue-50 transition-colors" style="color:#2563eb;border-color:#bfdbfe;cursor:pointer">Editar</button>
+        <button onclick="deleteProduct(${p.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-red-50 transition-colors" style="color:#dc2626;border-color:#fecaca;cursor:pointer">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══ PRODUCT CRUD ═══
+let editingId=null;
+function openAddProduct(){
+  editingId=null;
+  document.getElementById('editModalTitle').textContent='Agregar Producto';
+  ['editName','editPrice','editUnit','editEmoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('editDiscount').value='0';
+  document.getElementById('editCategory').value='verduras';
+  clearImg();
+  document.getElementById('editModal').classList.add('open');
+}
+function openEditProduct(id){
+  const p=products.find(x=>x.id===id);
+  if(!p) return;
+  editingId=id;
+  document.getElementById('editModalTitle').textContent='Editar Producto';
+  document.getElementById('editName').value=p.name;
+  document.getElementById('editPrice').value=p.price;
+  document.getElementById('editEmoji').value=p.emoji;
+  document.getElementById('editDiscount').value=p.discount;
+  document.getElementById('editUnit').value=p.unit;
+  document.getElementById('editCategory').value=p.category;
+  resetImgUpload(p.img||'');
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('open');}
+function saveEdit(){
+  const name=document.getElementById('editName').value.trim();
+  if(!name){showToast('Ingresá un nombre','⚠️');return;}
+  const existingImg=editingId?(products.find(x=>x.id===editingId)||{}).img||'':'';
+  const data={
+    name,
+    price:parseInt(document.getElementById('editPrice').value)||0,
+    emoji:document.getElementById('editEmoji').value||'📦',
+    discount:parseInt(document.getElementById('editDiscount').value)||0,
+    unit:document.getElementById('editUnit').value||'unidad',
+    category:document.getElementById('editCategory').value,
+    img:pendingImgData||existingImg
+  };
+  if(editingId){
+    const idx=products.findIndex(x=>x.id===editingId);
+    products[idx]={...products[idx],...data};
+  } else {
+    products.push({id:Date.now(),...data});
+  }
+  closeEdit();
+  renderProducts(currentFilter);
+  renderAdminProducts();
+  showToast('Producto guardado');
+}
+function deleteProduct(id){
+  if(!confirm('¿Eliminar este producto?')) return;
+  products=products.filter(x=>x.id!==id);
+  renderProducts(currentFilter);
+  renderAdminProducts();
+  showToast('Producto eliminado','🗑️');
+}
+
+// ═══ OFFER CRUD ═══
+let editingOfferId=null,editingOfferNew=false;
+function renderAdminOffers(){
+  document.getElementById('adminOfferList').innerHTML=offers.map(o=>{
+    const disc=Math.round((1-o.salePrice/o.originalPrice)*100);
+    return `<div class="flex items-center gap-4 p-4 rounded-xl border hover:bg-gray-50 transition-colors" style="border-color:#f0e8d8">
+      <span class="text-3xl flex-shrink-0">${o.emoji}</span>
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-sm">${o.title}</div>
+        <div class="text-xs text-gray-400 truncate">${o.desc}</div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <div class="font-semibold text-sm" style="color:var(--accent)">-${disc}%</div>
+        <div class="text-xs text-gray-400">${fmt(o.salePrice)}</div>
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <button onclick="openEditOffer(${o.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-blue-50 transition-colors" style="color:#2563eb;border-color:#bfdbfe;cursor:pointer">Editar</button>
+        <button onclick="deleteOffer(${o.id})" class="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-red-50 transition-colors" style="color:#dc2626;border-color:#fecaca;cursor:pointer">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddOffer(){
+  editingOfferId=null;editingOfferNew=true;
+  document.getElementById('offerModalTitle').textContent='Agregar Oferta';
+  ['offerTitle','offerDesc','offerOriginal','offerSale','offerExpiry'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('offerEmoji').value='🏷️';
+  document.getElementById('offerModal').classList.add('open');
+}
+function openEditOffer(id){
+  const o=offers.find(x=>x.id===id);
+  if(!o) return;
+  editingOfferId=id;editingOfferNew=false;
+  document.getElementById('offerModalTitle').textContent='Editar Oferta';
+  document.getElementById('offerTitle').value=o.title;
+  document.getElementById('offerDesc').value=o.desc;
+  document.getElementById('offerOriginal').value=o.originalPrice;
+  document.getElementById('offerSale').value=o.salePrice;
+  document.getElementById('offerEmoji').value=o.emoji;
+  document.getElementById('offerExpiry').value=o.expiry;
+  document.getElementById('offerModal').classList.add('open');
+}
+function closeOfferModal(){document.getElementById('offerModal').classList.remove('open');}
+function saveOffer(){
+  const title=document.getElementById('offerTitle').value.trim();
+  if(!title){showToast('Ingresá un título','⚠️');return;}
+  const data={
+    title,
+    desc:document.getElementById('offerDesc').value,
+    originalPrice:parseInt(document.getElementById('offerOriginal').value)||0,
+    salePrice:parseInt(document.getElementById('offerSale').value)||0,
+    emoji:document.getElementById('offerEmoji').value||'🏷️',
+    expiry:document.getElementById('offerExpiry').value
+  };
+  if(editingOfferNew){offers.push({id:Date.now(),...data});}
+  else{const idx=offers.findIndex(x=>x.id===editingOfferId);offers[idx]={...offers[idx],...data};}
+  closeOfferModal();
+  renderOffers();
+  renderAdminOffers();
+  showToast('Oferta guardada');
+}
+function deleteOffer(id){
+  if(!confirm('¿Eliminar esta oferta?')) return;
+  offers=offers.filter(x=>x.id!==id);
+  renderOffers();
+  renderAdminOffers();
+  showToast('Oferta eliminada','🗑️');
+}
+
+// ═══ INIT ═══
+renderProducts();
+renderOffers();
+applyMap();
+renderBranchCards();
+</script>
+</body>
+</html>
